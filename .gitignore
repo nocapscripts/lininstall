@@ -1,0 +1,5 @@
+node_modules/
+dist/
+assets/tailwind.css
+*.log
+.DS_Store

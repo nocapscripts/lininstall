@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+  <title>LinInstall Utility</title>
+  <link rel="stylesheet" href="assets/tailwind.css" />
+</head>
+<body class="flex h-screen">
+  <aside class="w-[236px] shrink-0 bg-panel border-r border-line px-3.5 py-[18px] flex flex-col gap-3.5">
+    <div class="flex items-center gap-2.5 px-1.5">
+      <span class="text-[26px]">🐧</span>
+      <div>
+        <b class="block text-[15px]">LinInstall</b>
+        <small class="text-accent font-bold tracking-widest uppercase text-[10px]">Linux utility</small>
+      </div>
+    </div>
+    <input id="search" type="search" placeholder="Search tasks…"
+      class="w-full px-3 py-2 rounded-xl border border-line bg-panel2 text-ink outline-none focus:border-accent" />
+    <nav id="nav" class="flex-1 flex flex-col gap-[3px] overflow-y-auto"></nav>
+    <div id="distro" class="text-[11px] text-muted px-1.5 leading-normal whitespace-pre-line"></div>
+  </aside>
+
+  <main class="flex-1 flex flex-col min-w-0">
+    <header class="flex items-center justify-between px-[26px] pt-[18px] pb-1.5">
+      <h2 id="title" class="m-0 text-xl font-semibold"></h2>
+      <span id="status" class="text-xs text-warn"></span>
+    </header>
+    <section id="content" class="flex-1 overflow-y-auto px-[26px] pt-2.5 pb-5"></section>
+    <div class="h-[220px] border-t border-line bg-[#090b0e] flex flex-col">
+      <div class="flex items-center justify-between px-4 py-1.5 text-muted text-xs">
+        <b>Output</b>
+        <span class="flex gap-1.5">
+          <button id="copylog" class="border border-line text-muted rounded-lg px-3 py-1 hover:text-ink hover:border-muted">Copy</button>
+          <button id="clearlog" class="border border-line text-muted rounded-lg px-3 py-1 hover:text-ink hover:border-muted">Clear</button>
+        </span>
+      </div>
+      <pre id="log" class="flex-1 m-0 px-4 pb-3 overflow-y-auto font-mono text-xs leading-normal text-[#b6f1c4] whitespace-pre-wrap break-all">Output will appear here…</pre>
+    </div>
+  </main>
+
+  <div id="modal" class="hidden fixed inset-0 bg-black/60 items-center justify-center z-10">
+    <div class="w-[min(640px,92vw)] bg-panel border border-line rounded-2xl p-[22px]">
+      <h3 id="m-title" class="m-0 mb-1 text-lg font-semibold"></h3>
+      <p id="m-desc" class="m-0 mb-2.5 text-muted"></p>
+      <div id="m-tags" class="flex gap-1.5 flex-wrap mb-3"></div>
+      <pre id="m-cmd" class="bg-[#090b0e] border border-line rounded-xl p-3 max-h-60 overflow-auto font-mono text-xs leading-normal whitespace-pre-wrap break-all text-[#c9d1ff]"></pre>
+      <div class="flex justify-end gap-2 mt-4">
+        <button id="m-cancel" class="border border-line text-muted rounded-lg px-3 py-1.5 hover:text-ink hover:border-muted">Cancel</button>
+        <button id="m-ok" class="bg-gradient-to-br from-accent to-accent2 text-white rounded-[9px] px-4 py-1.5 font-semibold">Run</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
