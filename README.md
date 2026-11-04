@@ -82,38 +82,23 @@ Grab a package from the [**Releases**](../../releases) page.
 
 ```bash
 # Fedora / RHEL-based
-sudo dnf install ./lininstall-2.0.0.rpm
+sudo dnf install ./lininstall-<ver>.rpm
 
 # Debian / Ubuntu
-sudo apt install ./lininstall-2.0.0.deb
+sudo apt install ./lininstall-<ver>.deb
 
 # Any distro (AppImage)
-chmod +x lininstall-2.0.0.AppImage
-./lininstall-2.0.0.AppImage
+chmod +x lininstall-<ver>.AppImage
+./lininstall-<ver>.AppImage
 ```
 
 The AppImage needs FUSE on Fedora: `sudo dnf install fuse-libs`.
 
 **Requirements:** `polkit` (for `pkexec`) and `pciutils` (for `lspci`). The rpm and deb packages pull these in automatically.
 
-## 🔨 Build from source
 
-```bash
-git clone https://github.com/nocapscripts/lininstall.git
-cd lininstall
-yarn install        # or: npm install
-yarn start          # builds the CSS and launches the app
-```
 
-### Package it
 
-```bash
-./build.sh rpm              # build the rpm
-./build.sh rpm --install    # build and install it
-./build.sh appimage         # AppImage only
-./build.sh deb              # deb only
-./build.sh all              # everything
-```
 
 Output goes to `dist/`.
 
@@ -133,12 +118,7 @@ sudo gem install fpm
 
 </details>
 
-### Live CSS while developing
 
-```bash
-npm run watch:css     # terminal 1
-npx electron .        # terminal 2
-```
 
 ## 🧩 Add your own tasks
 
@@ -215,6 +195,17 @@ No. LinInstall is an independent project inspired by [ChrisTitusTech/linutil](ht
 ## 🤝 Contributing
 
 Issues and pull requests are welcome. To add a task, edit `tasks.js`, run it with `yarn start`, and please say which distro you tested it on.
+
+Do not create any similar phishing and scam related program from this source!
+
+This project should be for linux community made by love and enthusiasm
+
+
+## 💜 Community & responsible use
+ 
+LinInstall is made for the Linux community, with love and enthusiasm.
+ 
+Please **do not** use this source to build phishing tools, scams, malware or anything else meant to deceive or harm people. Contributions with that kind of purpose will not be accepted.
 
 ## 📄 License
 
