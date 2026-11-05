@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # LinInstall build script
 # Usage: ./build.sh [rpm|appimage|deb|all] [--install]
+# For build only, use ./build.sh rpm|appimage|deb|all
 set -euo pipefail
 
 cd "$(dirname "$(readlink -f "$0")")"   # always run from the project root
