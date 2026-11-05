@@ -179,7 +179,7 @@ async function renderRemove(el) {
     askRun({
       name: `Remove ${all.length} package(s)`,
       desc: "Dependencies that are no longer needed may be removed too. Use Preview first to see exactly what goes.",
-      root: s.native.length > 0, reboot: false, danger: true,
+      root: s.native.length > 0 && !["brew", "nix", "yay", "paru"].includes(data.info.pm), reboot: false, danger: true,
       cmd: all.join("\n"),
       run: () => window.api.removePackages(s, false),
     });
@@ -231,9 +231,27 @@ function buildNav() {
 function go(id) { current = id; $("search").value = ""; render(); }
 $("search").addEventListener("input", render);
 
+function buildPmSelect() {
+  const sel = $("pm"), i = data.info;
+  sel.replaceChildren(
+    h("option", { value: "auto" }, `Auto (${i.defaultPm || "none found"})`),
+    ...i.allPms.map((p) => h("option", { value: p }, i.availablePms.includes(p) ? p : `${p} (not installed)`)));
+  sel.value = i.pmChoice;
+  $("pm-hint").textContent = i.pm && !i.availablePms.includes(i.pm)
+    ? `${i.pm} is not installed - tasks will fail until you install it.` : "";
+}
+$("pm").addEventListener("change", async (e) => {
+  if (busy) { e.target.value = data.info.pmChoice; return; }
+  data = await window.api.setPm(e.target.value);
+  buildPmSelect();
+  render();
+});
+
 (async () => {
   data = await window.api.getData();
+  buildPmSelect();
   $("distro").textContent = `${data.info.distro}\nKernel ${data.info.kernel}`;
+  $("version").textContent = `v${await window.api.getVersion()}`;
   buildNav();
   render();
 })();

@@ -42,7 +42,26 @@ function detect() {
   } catch {}
   const idLike = `${rel.ID || ""} ${rel.ID_LIKE || ""}`;
   const has = (b) => !!sh(`command -v ${b}`);
-  const pm = has("dnf") ? "dnf" : has("apt-get") ? "apt" : has("pacman") ? "pacman" : has("zypper") ? "zypper" : null;
+  // Linuxbrew is often not on PATH for GUI apps, so add its usual locations
+  [ "/home/linuxbrew/.linuxbrew/bin", `${os.homedir()}/.linuxbrew/bin` ].forEach((d) => {
+    if (fs.existsSync(`${d}/brew`) && !(process.env.PATH || "").split(":").includes(d)) process.env.PATH = `${d}:${process.env.PATH}`;
+  });
+  // [binary, name] - system managers first so they win the fallback
+  const available = [["dnf", "dnf"], ["apt-get", "apt"], ["pacman", "pacman"], ["zypper", "zypper"],
+    ["apk", "apk"], ["xbps-install", "xbps"], ["emerge", "emerge"],
+    ["yay", "yay"], ["paru", "paru"], ["nix", "nix"], ["brew", "brew"]]
+    .filter(([bin]) => has(bin)).map(([, name]) => name);
+  // The system's own package manager, based on the distro family
+  const family = /fedora|rhel|centos|rocky|alma/i.test(idLike) ? "dnf"
+    : /debian|ubuntu|mint|pop/i.test(idLike) ? "apt"
+    : /arch|manjaro|endeavour|cachyos/i.test(idLike) ? "pacman"
+    : /suse/i.test(idLike) ? "zypper"
+    : /alpine/i.test(idLike) ? "apk"
+    : /void/i.test(idLike) ? "xbps"
+    : /gentoo/i.test(idLike) ? "emerge"
+    : /nixos/i.test(idLike) ? "nix" : null;
+  const defaultPm = available.includes(family) ? family : available[0] || null;
+  const pm = defaultPm;
 
   const gpuLines = sh("lspci -nn").split("\n").filter((l) => /VGA compatible|3D controller|Display controller/i.test(l));
   const gpus = gpuLines.map(parseGpu);
@@ -51,6 +70,10 @@ function detect() {
   const cpus = os.cpus();
   return {
     pm,
+    defaultPm,
+    availablePms: available,
+    allPms: ["dnf", "apt", "pacman", "zypper", "apk", "xbps", "emerge", "yay", "paru", "nix", "brew"],
+    pmChoice: "auto",
     fedora: /fedora/i.test(idLike),
     ubuntuLike: /ubuntu/i.test(idLike),
     distro: rel.PRETTY_NAME || "Linux",

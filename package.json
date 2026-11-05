@@ -1,7 +1,7 @@
 {
   "name": "lininstall",
   "productName": "LinInstall",
-  "version": "2.0.0",
+  "version": "2.0.5",
   "description": "Linux system utility with GPU driver manager, app installer and tweaks",
   "main": "main.js",
   "author": {
