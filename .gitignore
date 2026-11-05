@@ -3,3 +3,4 @@ dist/
 assets/tailwind.css
 *.log
 .DS_Store
+*.zip
