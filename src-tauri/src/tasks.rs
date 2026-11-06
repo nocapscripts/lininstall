@@ -690,39 +690,247 @@ fn apps() -> Category {
             task("rust", "Rust", "Install Rust via rustup (official method)", "Development",
                 fixed("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")).user(),
             /* Install DBeaver  https://dbeaver.io/files/dbeaver-ce-latest-linux-x86_64.rpm */
-            task("dbeaver", "DBeaver", "Database management tool (Fedora/RHEL: RPM, Ubuntu/Debian: DEB, openSUSE: RPM)", "Development",
-                func(|c| Some(match c.pm.as_str() {
-                    "dnf" => lines(&[
-                        "set -e",
-                        "rpm --import https://dbeaver.io/debs/dbeaver.gpg.key",
-                        "cat > /etc/yum.repos.d/dbeaver.repo <<'EOF'",
-                        "[dbeaver-ce]",
-                        "name=DBeaver CE Repository",
-                        "baseurl=https://dbeaver.io/rpm/ce/latest/x86_64/",
-                        "enabled=1",
-                        "gpgcheck=1",
-                        "gpgkey=https://dbeaver.io/debs/dbeaver.gpg.key",
-                        "EOF",
-                        "dnf install -y dbeaver-ce",
-                    ]),
-                    "apt" => apt_repo(
-                        "https://dbeaver.io/debs/dbeaver.gpg.key",
-                        "dbeaver-keyring.gpg",
-                        "deb [arch=amd64 signed-by=/usr/share/keyrings/dbeaver-keyring.gpg] https://dbeaver.io/debs/dbeaver-ce /",
-                        "dbeaver.list",
-                        "dbeaver-ce",
-                    ),
-                    "zypper" => lines(&[
-                        "set -e",
-                        ". /etc/os-release",
-                        r#"rpm --import https://dbeaver.io/debs/dbeaver.gpg.key"#,
-                        r#"zypper --non-interactive removerepo dbeaver 2>/dev/null || true"#,
-                        r#"zypper --non-interactive addrepo --gpgcheck https://dbeaver.io/rpm/ce/latest/x86_64/ dbeaver"#,
-                        r#"zypper --non-interactive --gpg-auto-import-keys refresh"#,
-                        r#"zypper --non-interactive install dbeaver-ce"#,
-                    ]),
-                    _ => return None,
-                }))),
+            
+            task(
+                "dbeaver-ce",
+                "DBeaver",
+                "Database management tool (Official RPM/DEB, Arch, Nix, Flatpak)",
+                "Development",
+                func(|c| {
+                    let flatpak = |pkg: &str| -> Option<String> {
+                        Some(format!(
+                            "{} && flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo && flatpak install -y flathub io.dbeaver.DBeaverCommunity",
+                            install_cmd(&c.pm, pkg)?
+                        ))
+                    };
+
+                    match c.pm.as_str() {
+                        // Fedora / RHEL / CentOS
+                        "dnf" => Some(lines(&[
+                            "set -eu",
+                            r#"
+            ARCH="$(uname -m)"
+
+            case "$ARCH" in
+                x86_64|aarch64) ;;
+                *)
+                    echo "Unsupported architecture: $ARCH"
+                    exit 1
+                    ;;
+            esac
+
+            TMP="$(mktemp --suffix=.rpm)"
+            trap 'rm -f "$TMP"' EXIT
+
+            dnf install -y curl ca-certificates
+
+            curl -fSL --retry 3 \
+                "https://dbeaver.io/files/dbeaver-ce-latest-linux-${ARCH}.rpm" \
+                -o "$TMP"
+
+            dnf install -y "$TMP"
+            "#,
+                        ])),
+
+                        // openSUSE
+                        "zypper" => Some(lines(&[
+                            "set -eu",
+                            r#"
+            ARCH="$(uname -m)"
+
+            case "$ARCH" in
+                x86_64|aarch64) ;;
+                *)
+                    echo "Unsupported architecture: $ARCH"
+                    exit 1
+                    ;;
+            esac
+
+            TMP="$(mktemp --suffix=.rpm)"
+            trap 'rm -f "$TMP"' EXIT
+
+            zypper --non-interactive install curl ca-certificates
+
+            curl -fSL --retry 3 \
+                "https://dbeaver.io/files/dbeaver-ce-latest-linux-${ARCH}.rpm" \
+                -o "$TMP"
+
+            zypper --non-interactive --no-gpg-checks install "$TMP"
+            "#,
+                        ])),
+
+                        // Debian / Ubuntu / Linux Mint / Pop!_OS
+                        "apt" => Some(lines(&[
+                            "set -eu",
+                            "export DEBIAN_FRONTEND=noninteractive",
+                            r#"
+            ARCH="$(dpkg --print-architecture)"
+
+            case "$ARCH" in
+                amd64) ARCH="x86_64" ;;
+                arm64) ARCH="aarch64" ;;
+                *)
+                    echo "Unsupported architecture: $ARCH"
+                    exit 1
+                    ;;
+            esac
+
+            apt-get update
+            apt-get install -y curl ca-certificates
+
+            TMP="$(mktemp --suffix=.deb)"
+            trap 'rm -f "$TMP"' EXIT
+
+            curl -fSL --retry 3 \
+                "https://dbeaver.io/files/dbeaver-ce-latest-linux-${ARCH}.deb" \
+                -o "$TMP"
+
+            apt-get install -y "$TMP"
+            "#,
+                        ])),
+
+                        // Arch Linux / AUR
+                        "pacman" | "yay" | "paru" => {
+                            install_cmd(&c.pm, "dbeaver")
+                        }
+
+                        // NixOS
+                        "nix" => {
+                            install_cmd("nix", "dbeaver-bin")
+                        }
+
+                        // Alpine / Void Linux
+                        "apk" | "xbps" => {
+                            flatpak("flatpak")
+                        }
+
+                        // Gentoo
+                        "emerge" => {
+                            flatpak("sys-apps/flatpak")
+                        }
+
+                        // Unsupported package manager
+                        _ => None,
+                    }
+                }),
+            ),
+
+
+
+            task(
+                "heidisql",
+                "HeidiSQL",
+                "Database management tool (Official RPM/DEB, Arch, Flatpak)",
+                "Development",
+                func(|c| {
+                    let version = "12.22";
+
+                    let rpm = format!(
+                        "https://github.com/HeidiSQL/HeidiSQL/releases/download/v{version}/heidisql-{version}-1.x86_64.rpm"
+                    );
+
+                    let deb = format!(
+                        "https://github.com/HeidiSQL/HeidiSQL/releases/download/v{version}/heidisql_{version}_amd64.deb"
+                    );
+
+                    let flatpak = |pkg: &str| -> Option<String> {
+                        Some(format!(
+                            "{} && \
+                            flatpak remote-add --if-not-exists flatpark \
+                            https://dl.flatpark.org/flatpark.flatpakrepo && \
+                            flatpak install -y flatpark com.heidisql.HeidiSQL",
+                            install_cmd(&c.pm, pkg)?
+                        ))
+                    };
+
+                    match c.pm.as_str() {
+                        // Fedora / RHEL / CentOS
+                        "dnf" => Some(lines(&[
+                            "set -eu",
+                            r#"
+                            ARCH="$(uname -m)"
+
+                            if [ "$ARCH" != "x86_64" ]; then
+                                echo "Official RPM package currently supports x86_64 only."
+                                exit 1
+                            fi
+                            "#,
+                            "dnf install -y curl ca-certificates",
+                            "TMP=\"$(mktemp --suffix=.rpm)\"",
+                            "trap 'rm -f \"$TMP\"' EXIT",
+                            &format!(
+                                "curl -fSL --retry 3 -o \"$TMP\" \"{rpm}\""
+                            ),
+                            "dnf install -y \"$TMP\"",
+                        ])),
+
+                        // openSUSE
+                        "zypper" => Some(lines(&[
+                            "set -eu",
+                            r#"
+                            if [ "$(uname -m)" != "x86_64" ]; then
+                                echo "Official RPM package currently supports x86_64 only."
+                                exit 1
+                            fi
+                            "#,
+                            "zypper --non-interactive install curl ca-certificates",
+                            "TMP=\"$(mktemp --suffix=.rpm)\"",
+                            "trap 'rm -f \"$TMP\"' EXIT",
+                            &format!(
+                                "curl -fSL --retry 3 -o \"$TMP\" \"{rpm}\""
+                            ),
+                            "zypper --non-interactive install \"$TMP\"",
+                        ])),
+
+                        // Debian / Ubuntu / Linux Mint / Pop!_OS
+                        "apt" => Some(lines(&[
+                            "set -eu",
+                            "export DEBIAN_FRONTEND=noninteractive",
+                            r#"
+                            ARCH="$(dpkg --print-architecture)"
+
+                            if [ "$ARCH" != "amd64" ]; then
+                                echo "Official DEB package currently supports amd64 only."
+                                exit 1
+                            fi
+                            "#,
+                            "apt-get update",
+                            "apt-get install -y curl ca-certificates",
+                            "TMP=\"$(mktemp --suffix=.deb)\"",
+                            "trap 'rm -f \"$TMP\"' EXIT",
+                            &format!(
+                                "curl -fSL --retry 3 -o \"$TMP\" \"{deb}\""
+                            ),
+                            "apt-get install -y \"$TMP\"",
+                        ])),
+
+                        // Arch Linux / AUR
+                        "pacman" | "yay" | "paru" => {
+                            install_cmd(&c.pm, "heidisql")
+                        }
+
+                        // NixOS
+                        "nix" => {
+                            install_cmd("nix", "heidisql")
+                        }
+
+                        // Alpine / Void Linux
+                        "apk" | "xbps" => {
+                            flatpak("flatpak")
+                        }
+
+                        // Gentoo
+                        "emerge" => {
+                            flatpak("sys-apps/flatpak")
+                        }
+
+                        // Unsupported package manager
+                        _ => None,
+                    }
+                }),
+            ),
+
+
             
                 
         ],
