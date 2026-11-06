@@ -11,8 +11,8 @@ use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 use std::{env, fs};
 
-pub const ALL_PMS: [&str; 11] = [
-    "dnf", "apt", "pacman", "zypper", "apk", "xbps", "emerge", "yay", "paru", "nix", "brew",
+pub const ALL_PMS: [&str; 12] = [
+    "dnf", "apt", "pacman", "zypper", "apk", "xbps", "emerge", "yay", "paru", "nix", "brew", "flatpak",
 ];
 
 #[derive(Clone, Serialize)]
@@ -272,6 +272,8 @@ pub fn detect() -> Ctx {
         ("dnf", "dnf"), ("apt-get", "apt"), ("pacman", "pacman"), ("zypper", "zypper"),
         ("apk", "apk"), ("xbps-install", "xbps"), ("emerge", "emerge"),
         ("yay", "yay"), ("paru", "paru"), ("nix", "nix"), ("brew", "brew"),
+        /* flatpak */
+        ("flatpak", "flatpak"),
     ]
     .iter()
     .filter(|(bin, _)| has(bin))
