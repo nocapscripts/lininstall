@@ -3,7 +3,7 @@
   "productName": "LinInstall",
   "version": "3.0.0",
   "private": true,
-  "description": "Linux system utility with GPU driver manager, app installer and tweaks (Tauri + Rust + Tailwind)",
+  "description": "Linux system utility with GPU driver manager, app installer and tweaks (Tauri + Rust + Tailwind).",
   "author": "NoCapScripts <nocapscripts@gmail.com>",
   "license": "MIT",
   "scripts": {
