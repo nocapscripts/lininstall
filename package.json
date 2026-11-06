@@ -1,96 +1,23 @@
 {
   "name": "lininstall",
   "productName": "LinInstall",
-  "version": "2.0.5",
-  "description": "Linux system utility with GPU driver manager, app installer and tweaks",
-  "main": "main.js",
-  "author": {
-    "name": "NoCapScripts",
-    "email": "nocapscripts@gmail.com"
-  },
-  "homepage": "https://example.com/lininstall",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Linux system utility with GPU driver manager, app installer and tweaks (Tauri + Rust + Tailwind)",
+  "author": "NoCapScripts <nocapscripts@gmail.com>",
   "license": "MIT",
-  "keywords": [
-    "linux",
-    "utility",
-    "nvidia",
-    "drivers",
-    "fedora",
-    "electron"
-  ],
   "scripts": {
-    "build:css": "tailwindcss -i ./src/input.css -o ./assets/tailwind.css --minify",
-    "watch:css": "tailwindcss -i ./src/input.css -o ./assets/tailwind.css --watch",
-    "start": "npm run build:css && electron .",
-    "dist": "npm run build:css && electron-builder --linux",
-    "dist:appimage": "npm run build:css && electron-builder --linux AppImage",
-    "dist:rpm": "npm run build:css && electron-builder --linux rpm",
-    "dist:deb": "npm run build:css && electron-builder --linux deb"
-  },
-  "build": {
-    "appId": "com.nocapscripts.lininstall",
-    "productName": "LinInstall",
-    "copyright": "Copyright © 2026 NoCapScripts",
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
-    "files": [
-      "main.js",
-      "preload.js",
-      "detect.js",
-      "tasks.js",
-      "index.html",
-      "renderer.js",
-      "assets/tailwind.css",
-      "package.json",
-      "build/icon.png"
-    ],
-    "artifactName": "${name}-${version}.${ext}",
-    "linux": {
-      "target": [
-        "AppImage",
-        "rpm",
-        "deb"
-      ],
-      "category": "System",
-      "icon": "build/icons",
-      "maintainer": "NoCapScripts <nocapscripts@gmail.com>",
-      "vendor": "NoCapScripts",
-      "synopsis": "Linux utility and GPU driver manager",
-      "description": "Install apps, update the system, manage NVIDIA/AMD/Intel GPU drivers and apply tweaks from one place.",
-      "desktop": {
-        "entry": {
-          "Name": "LinInstall",
-          "Comment": "System utility and GPU driver manager",
-          "Keywords": "linux;utility;nvidia;drivers;system;",
-          "StartupWMClass": "lininstall"
-        }
-      }
-    },
-    "rpm": {
-      "depends": [
-        "polkit",
-        "pciutils"
-      ],
-      "fpm": [
-        "--rpm-rpmbuild-define=_build_id_links none",
-        "--rpm-rpmbuild-define=__os_install_post %{nil}"
-      ]
-    },
-    "deb": {
-      "depends": [
-        "policykit-1",
-        "pciutils"
-      ]
-    },
-    "appImage": {
-      "artifactName": "${name}-${version}.AppImage"
-    }
+    "build:css": "tailwindcss -i ./styles/input.css -o ./src/assets/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./styles/input.css -o ./src/assets/tailwind.css --watch=always",
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:rpm": "tauri build --bundles rpm",
+    "build:deb": "tauri build --bundles deb",
+    "build:appimage": "tauri build --bundles appimage"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-builder": "^24.13.3",
+    "@tauri-apps/cli": "^2.0.0",
     "tailwindcss": "^3.4.17"
   }
 }

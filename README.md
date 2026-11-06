@@ -4,11 +4,12 @@
 
 # LinInstall
 
-**A modern Linux utility with a built-in GPU driver manager.**
+**A modern Linux utility with a built-in GPU driver manager, built with Tauri, Rust and Tailwind CSS.**
 Update your system, install apps, fix NVIDIA drivers (even Pascal), harden security and tweak performance, all from one clean window. Designed for smoothiness.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-7c8cff.svg?style=for-the-badge)](LICENSE)
-[![Electron](https://img.shields.io/badge/Electron-31-47848f?style=for-the-badge&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Tauri](https://img.shields.io/badge/Tauri-2-24c8db?style=for-the-badge&logo=tauri&logoColor=white)](https://tauri.app/)
+[![Rust](https://img.shields.io/badge/Rust-logic-dea584?style=for-the-badge&logo=rust&logoColor=black)](https://www.rust-lang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38bdf8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![Fedora](https://img.shields.io/badge/Fedora-supported-51a2da?style=for-the-badge&logo=fedora&logoColor=white)](https://fedoraproject.org/)
 [![Platform](https://img.shields.io/badge/Linux-x64-fcc624?style=for-the-badge&logo=linux&logoColor=black)](#-supported-distros)
@@ -82,75 +83,90 @@ Grab a package from the [**Releases**](../../releases) page.
 
 ```bash
 # Fedora / RHEL-based
-sudo dnf install ./lininstall-<ver>.rpm
+sudo dnf install ./LinInstall-<ver>.rpm
 
 # Debian / Ubuntu
-sudo apt install ./lininstall-<ver>.deb
+sudo apt install ./LinInstall_<ver>_amd64.deb
 
 # Any distro (AppImage)
-chmod +x lininstall-<ver>.AppImage
-./lininstall-<ver>.AppImage
+chmod +x LinInstall_<ver>_amd64.AppImage
+./LinInstall_<ver>_amd64.AppImage
 ```
 
-The AppImage needs FUSE on Fedora: `sudo dnf install fuse-libs`.
+**Requirements:** `polkit` (for `pkexec`) and `pciutils` (for `lspci`). The rpm and deb packages pull these in automatically. The app uses the system WebKitGTK, so installs are small and start fast.
 
-**Requirements:** `polkit` (for `pkexec`) and `pciutils` (for `lspci`). The rpm and deb packages pull these in automatically.
-
-
-
-
-
-Output goes to `dist/`.
-
-<details>
-<summary><b>Fedora build prerequisites</b></summary>
+## 🔨 Build from source
 
 ```bash
-sudo dnf install nodejs npm rpm-build ImageMagick libxcrypt-compat
-sudo npm install -g yarn
+./build.sh rpm            # or: deb | appimage | all   (add --install to install the rpm)
 
-# Newer rpm versions need a current fpm (the bundled one is too old)
-sudo dnf install ruby ruby-devel gcc make redhat-rpm-config
-sudo gem install fpm
+# development
+npm install
+npm run tauri dev
 ```
 
-`build.sh` sets `USE_SYSTEM_FPM=true` for you. It also generates the sized icons in `build/icons/` so the package doesn't end up with a `0x0` icon folder.
+Output goes to `src-tauri/target/release/bundle/`.
+
+<details>
+<summary><b>Build prerequisites</b></summary>
+
+```bash
+# Fedora
+sudo dnf install nodejs npm rpm-build webkit2gtk4.1-devel openssl-devel curl wget file \
+  libappindicator-gtk3-devel librsvg2-devel libxdo-devel gcc gcc-c++ make
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Debian / Ubuntu
+sudo apt install nodejs npm build-essential curl wget file libwebkit2gtk-4.1-dev \
+  libssl-dev libxdo-dev libayatana-appindicator3-dev librsvg2-dev
+```
 
 </details>
 
+## 🏗️ Project layout
 
+| Path | What it does |
+|---|---|
+| `src-tauri/src/detect.rs` | Distro, package manager, hardware and GPU generation detection |
+| `src-tauri/src/tasks.rs` | The task catalog (every command the app can run) |
+| `src-tauri/src/commands.rs` | Tauri commands: run tasks with live output, list and remove packages |
+| `src/index.html`, `src/main.js` | The UI (plain JS, no bundler) |
+| `styles/input.css`, `tailwind.config.js` | Tailwind CSS, built into `src/assets/tailwind.css` |
 
 ## 🧩 Add your own tasks
 
-All tasks live in [`tasks.js`](tasks.js). A task is a plain object:
+All tasks live in [`src-tauri/src/tasks.rs`](src-tauri/src/tasks.rs). A task is one line:
 
-```js
-{ id: "htop", name: "htop", desc: "Process viewer", group: "Terminal tools", cmd: inst("htop") }
+```rust
+task("htop", "htop", "Process viewer", "Terminal tools", inst("htop", &[]))
 ```
 
-| Field | Meaning |
+| Part | Meaning |
 |---|---|
-| `id`, `name`, `desc` | Identifier, title and description shown in the UI |
-| `group` | Heading the task appears under |
-| `root` | Run through `pkexec` (default `true`); set `false` for user-level commands |
-| `reboot` | Show a "reboot recommended" note after success |
-| `danger` | Mark the task as "careful" and style the button red |
-| `cmd` | A shell string, or a function `(ctx) => string` (return nothing to mark it unsupported) |
+| `id`, name, description | Identifier, title and description shown in the UI |
+| group | Heading the task appears under |
+| `.user()` | Run as your user (default is root through `pkexec`) |
+| `.reboot()` | Show a "reboot recommended" note after success |
+| `.danger()` | Mark the task as "careful" and style the button red |
+| `.sys()` | System-level task: hidden on user-space managers (brew, nix) |
+| last argument | The command builder (see below). Returning `None` marks the task unsupported |
 
-Handy helpers:
+Command builders:
 
-```js
-inst("pkg")                               // install a package with the detected package manager
-inst("pkg", { pacman: "other-name" })     // per-distro package names (use null to mark unsupported)
-by({ dnf: "...", apt: "...", pacman: "..." })   // a different command per package manager
-flatpak("org.example.App")                // install a Flatpak from Flathub as your user
+```rust
+inst("pkg", &[])                              // install a package with the detected package manager
+inst("pkg", &[("pacman", Some("other-name"))]) // per-distro package names (None = unsupported)
+by(vec![("dnf", "...".into()), ("apt", "...".into())]) // a different command per package manager
+fixed("echo hello")                           // the same command everywhere
+func(|ctx| Some(format!("echo {}", ctx.pm)))  // full control, with access to the detected system
+flatpak_cmd("org.example.App")                // install a Flatpak from Flathub as your user
 ```
 
 
 ## 🔐 Security notes
 
 - Every command is shown **before** it runs. Nothing executes silently.
-- The UI runs with `contextIsolation` on and a strict Content Security Policy. Only whitelisted actions are exposed through the preload bridge.
+- The UI runs with a strict Content Security Policy. It can only ask Rust to run a task by **id** from the built-in catalog; it never sends a command to execute.
 - Root commands go through `pkexec`, so authentication is handled by polkit and not by the app.
 - Package names for the remove feature are validated, and core system packages (kernel, systemd, glibc, your desktop environment, the package manager, NVIDIA drivers) are hidden from the removal list.
 - Several tasks download and run vendor install scripts (Brave, Zed) or add third-party repos (VS Code). Read the command in the dialog if you want to check it first.
@@ -194,7 +210,7 @@ No. LinInstall is an independent project inspired by [ChrisTitusTech/linutil](ht
 
 ## 🤝 Contributing
 
-Issues and pull requests are welcome. To add a task, edit `tasks.js`, run it with `yarn start`, and please say which distro you tested it on.
+Issues and pull requests are welcome. To add a task, edit `src-tauri/src/tasks.rs`, run it with `npm run tauri dev`, and please say which distro you tested it on.
 
 Do not create any similar phishing and scam related program from this source!
 

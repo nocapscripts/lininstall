@@ -1,6 +1,7 @@
 node_modules/
-dist/
-assets/tailwind.css
+src-tauri/target/
+src-tauri/gen/
+src/assets/tailwind.css
 *.log
 .DS_Store
 *.zip
